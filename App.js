@@ -6,75 +6,97 @@ import * as Font from 'expo-font';
 import { Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import { Roboto_400Regular, Roboto_500Medium, Roboto_700Bold } from '@expo-google-fonts/roboto';
 
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from './src/config/firebase';
+
 import HomeScreen from './src/screens/HomeScreen';
 import LoadingScreen from './src/screens/LoadingScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import SignUpScreen from './src/screens/SignUpScreen';
 
-// Prevent the native splash from hiding automatically
 SplashScreen.preventAutoHideAsync();
 
 export default function App() {
   const [appIsReady, setAppIsReady] = useState(false);
-  const [showCustomSplash, setShowCustomSplash] = useState(true);
+  const [user, setUser] = useState(null);
+  const [initializing, setInitializing] = useState(true);
+  const [authMode, setAuthMode] = useState('login');
   
-  // Auth State
-  const [user, setUser] = useState(null); // null = not logged in
-  const [authMode, setAuthMode] = useState('login'); // 'login' or 'signup'
+  // NEW: Locks the screen on Signup until verification is done
+  const [isRegistering, setIsRegistering] = useState(false);
+
+  function onAuthStateChangedHandler(user) {
+    setUser(user);
+    if (initializing) setInitializing(false);
+  }
 
   useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, onAuthStateChangedHandler);
+    
     async function prepare() {
       try {
-        // Load Fonts
         await Font.loadAsync({
           'Inter': Inter_400Regular,
           'Inter-Bold': Inter_700Bold, 
           'Roboto': Roboto_400Regular,
           'Roboto-Bold': Roboto_700Bold,
         });
-
         await SplashScreen.hideAsync();
-        // Artificial delay for custom splash
         await new Promise(resolve => setTimeout(resolve, 2000)); 
-
       } catch (e) {
         console.warn(e);
       } finally {
         setAppIsReady(true);
-        setShowCustomSplash(false);
       }
     }
-
     prepare();
+    return unsubscribe;
   }, []);
 
-  if (showCustomSplash) {
+  if (!appIsReady || initializing) {
     return <LoadingScreen />;
   }
 
-  // Auth Logic
-  if (!user) {
-    if (authMode === 'signup') {
-      return (
-        <SignUpScreen 
-          onSignUp={() => setUser({ name: 'New User' })} 
-          onNavigateLogin={() => setAuthMode('login')} 
-        />
-      );
-    }
+  // 1. If we are in the middle of registering, FORCE show SignUpScreen
+  // This prevents App.js from switching to Home before data is saved
+  if (isRegistering) {
     return (
-      <LoginScreen 
-        onLogin={() => setUser({ name: 'Commuter' })} 
-        onNavigateSignUp={() => setAuthMode('signup')} 
+      <SignUpScreen 
+        onNavigateLogin={() => {
+            setIsRegistering(false);
+            setAuthMode('login');
+        }}
+        // When verification finishes, we turn this off to allow Home Screen
+        onSignUpSuccess={() => setIsRegistering(false)}
+        setIsRegistering={setIsRegistering}
       />
     );
   }
 
-  // If user exists, show Home Screen
+  // 2. Normal Flow: If user exists (and not registering), show Home
+  if (user) {
+    return (
+      <View className="flex-1">
+        <HomeScreen />
+        <StatusBar style="auto" />
+      </View>
+    );
+  }
+
+  // 3. Auth Flow
+  if (authMode === 'signup') {
+    return (
+      <SignUpScreen 
+        onNavigateLogin={() => setAuthMode('login')}
+        onSignUpSuccess={() => setIsRegistering(false)}
+        setIsRegistering={setIsRegistering}
+      />
+    );
+  }
+
   return (
-    <View className="flex-1">
-      <HomeScreen />
-      <StatusBar style="auto" />
-    </View>
+    <LoginScreen 
+      onNavigateSignUp={() => setAuthMode('signup')} 
+    />
   );
 }

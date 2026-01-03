@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function SignUpScreen({ onSignUp, onNavigateLogin }) {
+// Firebase Imports
+import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
+import { auth, db } from "../config/firebase";
+
+export default function SignUpScreen({ onSignUp, onNavigateLogin, onSignUpSuccess, setIsRegistering }) {
   // Sign Up Form State
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -15,11 +20,11 @@ export default function SignUpScreen({ onSignUp, onNavigateLogin }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // OTP State
-  const [showOtp, setShowOtp] = useState(false);
-  const [otp, setOtp] = useState('');
+  // Verification State
+  const [showVerification, setShowVerification] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSignUpInit = () => {
+  const handleSignUpInit = async () => {
     if (!firstName || !lastName || !email || !password) {
         Alert.alert("Missing Fields", "Please fill in all required fields.");
         return;
@@ -28,21 +33,100 @@ export default function SignUpScreen({ onSignUp, onNavigateLogin }) {
         Alert.alert("Error", "Passwords do not match!");
         return;
     }
-    // Proceed to OTP screen
-    setShowOtp(true);
-  };
 
-  const handleVerifyOtp = () => {
-    if (otp.length !== 6) {
-        Alert.alert("Invalid Code", "Please enter the 6-digit code sent to your email.");
-        return;
+    setIsLoading(true);
+    // 1. Lock the screen via App.js state so navigation doesn't happen yet
+    if(setIsRegistering) setIsRegistering(true);
+
+    try {
+        // 2. Create User in Authentication ONLY
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // 3. Update Profile Name
+        await updateProfile(user, { displayName: `${firstName} ${lastName}` });
+
+        // 4. Send Verification Email
+        await sendEmailVerification(user);
+
+        // 5. Show Verification Screen (Database NOT touched yet)
+        setShowVerification(true);
+        Alert.alert("Verification Sent", `A verification email has been sent to ${email}. Please check your inbox.`);
+
+    } catch (error) {
+        let errorMessage = error.message;
+        if (error.code === 'auth/email-already-in-use') {
+            errorMessage = 'This email address is already in use.';
+        }
+        Alert.alert("Registration Failed", errorMessage);
+        if(setIsRegistering) setIsRegistering(false); // Unlock if error
+        setShowVerification(false);
+    } finally {
+        setIsLoading(false);
     }
-    // Finalize signup
-    onSignUp();
   };
 
-  // Render OTP Verification Screen
-  if (showOtp) {
+  const handleCheckVerification = async () => {
+    setIsLoading(true);
+    try {
+        // Reload user to get latest emailVerified status from Firebase servers
+        if (auth.currentUser) {
+            await auth.currentUser.reload();
+            
+            if (auth.currentUser.emailVerified) {
+                // 6. SUCCESS: User verified, NOW we save to Firestore
+                await setDoc(doc(db, "users", auth.currentUser.uid), {
+                    firstName,
+                    lastName,
+                    email,
+                    birthDate,
+                    createdAt: new Date().toISOString(),
+                    role: 'commuter',
+                    emailVerified: true
+                });
+
+                Alert.alert("Success", "Email verified! Welcome to Eh Magkano?", [
+                    { 
+                        text: "Let's Go", 
+                        onPress: () => {
+                            // Tell App.js we are done registering, allow transition to Home
+                            if(onSignUpSuccess) onSignUpSuccess();
+                            // Fallback if prop not passed (though App.js handles user state automatically)
+                            if(onSignUp) onSignUp();
+                        } 
+                    }
+                ]);
+            } else {
+                Alert.alert("Not Verified", "We haven't received the confirmation yet. Please click the link in your email and try again.");
+            }
+        } else {
+             Alert.alert("Error", "No user found. Please try signing in again.");
+             if(setIsRegistering) setIsRegistering(false);
+             setShowVerification(false);
+        }
+    } catch (error) {
+        Alert.alert("Error", error.message);
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+  const handleResendEmail = async () => {
+      setIsLoading(true);
+      try {
+          if (auth.currentUser) {
+              await sendEmailVerification(auth.currentUser);
+              Alert.alert("Email Sent", "A new verification link has been sent.");
+          }
+      } catch (error) {
+          Alert.alert("Error", error.message);
+      } finally {
+          setIsLoading(false);
+      }
+  };
+
+  // Render "Check Email" Screen
+  if (showVerification) {
     return (
         <KeyboardAvoidingView 
           behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -51,72 +135,48 @@ export default function SignUpScreen({ onSignUp, onNavigateLogin }) {
           <StatusBar style="light" />
           <View className="flex-1 items-center justify-center pt-10 px-6">
             
-            {/* Icon */}
             <View className="w-20 h-20 bg-white/10 rounded-full items-center justify-center mb-6">
-                <Ionicons name="mail-open" size={40} color="white" />
+                <Ionicons name="mail-unread" size={40} color="white" />
             </View>
 
             <Text className="text-3xl font-bold text-white font-inter text-center">Verify Email</Text>
-            <Text className="text-teal-100 font-roboto mt-2 text-center text-sm px-8">
-                We sent a 6-digit confirmation code to <Text className="font-bold text-white">{email}</Text>
+            <Text className="text-teal-100 font-roboto mt-2 text-center text-sm px-4">
+                We sent a verification link to <Text className="font-bold text-white">{email}</Text>. Please click the link in that email to continue.
             </Text>
 
-            {/* OTP Input Card */}
             <View className="bg-white w-full rounded-3xl p-8 mt-8 shadow-lg">
-                <Text className="text-gray-500 font-roboto text-xs uppercase text-center mb-6">Enter Code</Text>
+                <Text className="text-gray-500 font-roboto text-xs uppercase text-center mb-6">Step 2 of 2</Text>
                 
-                {/* 6-Digit Input Container */}
-                <View className="relative mb-8 h-14 justify-center">
-                    {/* Visual Boxes */}
-                    <View className="flex-row justify-between w-full absolute top-0 bottom-0 pointer-events-none">
-                        {[0, 1, 2, 3, 4, 5].map((index) => (
-                            <View 
-                                key={index} 
-                                className={`w-10 h-14 rounded-xl border-2 items-center justify-center ${
-                                    otp.length === index ? 'border-primary bg-teal-50' : // Focused
-                                    otp.length > index ? 'border-primary bg-white' : // Filled
-                                    'border-gray-200 bg-gray-50' // Empty
-                                }`}
-                            >
-                                <Text className="text-2xl font-bold text-gray-800 font-inter">
-                                    {otp[index] || ''}
-                                </Text>
-                            </View>
-                        ))}
-                    </View>
-
-                    {/* Hidden Actual Input */}
-                    <TextInput
-                        className="opacity-0 w-full h-full font-bold text-transparent"
-                        value={otp}
-                        onChangeText={(text) => setOtp(text.slice(0, 6))} // Limit to 6 chars
-                        keyboardType="number-pad"
-                        maxLength={6}
-                        autoFocus={true}
-                        caretHidden={true}
-                    />
+                <View className="items-center mb-8">
+                    <Text className="text-gray-800 text-center font-inter mb-2">Waiting for confirmation...</Text>
+                    {isLoading ? <ActivityIndicator size="small" color="#0F766E" /> : null}
                 </View>
 
-                {/* Verify Button */}
+                {/* "I've Verified" Button */}
                 <TouchableOpacity 
-                    onPress={handleVerifyOtp}
-                    className={`w-full py-4 rounded-2xl shadow-lg active:opacity-90 ${
-                        otp.length === 6 ? 'bg-primary shadow-teal-900/20' : 'bg-gray-300'
-                    }`}
-                    disabled={otp.length !== 6}
+                    onPress={handleCheckVerification}
+                    disabled={isLoading}
+                    className="w-full bg-primary py-4 rounded-2xl shadow-lg shadow-teal-900/20 active:opacity-90 mb-4"
                 >
-                    <Text className="text-white text-center font-bold font-inter text-lg">Verify & Create Account</Text>
+                    <Text className="text-white text-center font-bold font-inter text-lg">I have verified my email</Text>
                 </TouchableOpacity>
 
-                {/* Resend & Back */}
-                <View className="flex-row justify-between items-center mt-6">
-                    <TouchableOpacity onPress={() => setShowOtp(false)}>
-                        <Text className="text-gray-400 font-inter text-xs">← Back to Sign Up</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity>
-                        <Text className="text-primary font-bold font-inter text-xs">Resend Code</Text>
-                    </TouchableOpacity>
-                </View>
+                {/* Resend */}
+                <TouchableOpacity onPress={handleResendEmail} className="items-center py-2" disabled={isLoading}>
+                    <Text className="text-primary font-bold font-inter text-xs">Resend Link</Text>
+                </TouchableOpacity>
+                
+                 {/* Back to Signup (Cancel) */}
+                 <TouchableOpacity 
+                    onPress={() => {
+                        if(setIsRegistering) setIsRegistering(false);
+                        setShowVerification(false);
+                    }} 
+                    className="items-center py-2 mt-2" 
+                    disabled={isLoading}
+                >
+                    <Text className="text-gray-400 font-inter text-xs">Cancel & Return</Text>
+                </TouchableOpacity>
             </View>
           </View>
         </KeyboardAvoidingView>
@@ -132,7 +192,7 @@ export default function SignUpScreen({ onSignUp, onNavigateLogin }) {
       <StatusBar style="light" />
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         
-        {/* Top Section: Branding (Compact for Signup) */}
+        {/* Top Section: Branding */}
         <View className="items-center justify-center py-8">
             <Text className="text-3xl font-bold text-white font-inter tracking-wider">Eh Magkano?</Text>
             <Text className="text-teal-200 font-roboto mt-1">Join the Community.</Text>
@@ -144,7 +204,6 @@ export default function SignUpScreen({ onSignUp, onNavigateLogin }) {
 
             {/* Split Name Fields */}
             <View className="flex-row justify-between mb-4 space-x-3">
-                {/* First Name */}
                 <View className="flex-1">
                     <Text className="text-gray-500 font-roboto text-xs ml-4 mb-2 uppercase">First Name</Text>
                     <View className="bg-surface rounded-2xl flex-row items-center px-4 py-3 border border-gray-100 shadow-sm">
@@ -156,8 +215,6 @@ export default function SignUpScreen({ onSignUp, onNavigateLogin }) {
                         />
                     </View>
                 </View>
-
-                {/* Last Name */}
                 <View className="flex-1">
                     <Text className="text-gray-500 font-roboto text-xs ml-4 mb-2 uppercase">Last Name</Text>
                     <View className="bg-surface rounded-2xl flex-row items-center px-4 py-3 border border-gray-100 shadow-sm">
@@ -171,22 +228,21 @@ export default function SignUpScreen({ onSignUp, onNavigateLogin }) {
                 </View>
             </View>
 
-            {/* Birthdate Input */}
+            {/* Birthdate */}
             <View className="mb-4">
                 <Text className="text-gray-500 font-roboto text-xs ml-4 mb-2 uppercase">Birthdate</Text>
-                <TouchableOpacity className="bg-surface rounded-2xl flex-row items-center px-4 py-3 border border-gray-100 shadow-sm">
+                <View className="bg-surface rounded-2xl flex-row items-center px-4 py-3 border border-gray-100 shadow-sm">
                     <Ionicons name="calendar-outline" size={20} color="#9CA3AF" />
                     <TextInput 
                         className="flex-1 ml-3 font-roboto text-gray-700"
                         placeholder="YYYY-MM-DD"
                         value={birthDate}
                         onChangeText={setBirthDate}
-                        keyboardType="numeric"
                     />
-                </TouchableOpacity>
+                </View>
             </View>
 
-            {/* Email Input */}
+            {/* Email */}
             <View className="mb-4">
                 <Text className="text-gray-500 font-roboto text-xs ml-4 mb-2 uppercase">Email Address</Text>
                 <View className="bg-surface rounded-2xl flex-row items-center px-4 py-3 border border-gray-100 shadow-sm">
@@ -202,7 +258,7 @@ export default function SignUpScreen({ onSignUp, onNavigateLogin }) {
                 </View>
             </View>
 
-            {/* Password Input */}
+            {/* Password */}
             <View className="mb-4">
                 <Text className="text-gray-500 font-roboto text-xs ml-4 mb-2 uppercase">Password</Text>
                 <View className="bg-surface rounded-2xl flex-row items-center px-4 py-3 border border-gray-100 shadow-sm">
@@ -220,7 +276,7 @@ export default function SignUpScreen({ onSignUp, onNavigateLogin }) {
                 </View>
             </View>
 
-            {/* Confirm Password Input */}
+            {/* Confirm Password */}
             <View className="mb-6">
                 <Text className="text-gray-500 font-roboto text-xs ml-4 mb-2 uppercase">Confirm Password</Text>
                 <View className={`bg-surface rounded-2xl flex-row items-center px-4 py-3 border shadow-sm ${
@@ -246,9 +302,10 @@ export default function SignUpScreen({ onSignUp, onNavigateLogin }) {
             {/* Sign Up Button (Proceeds to OTP) */}
             <TouchableOpacity 
                 onPress={handleSignUpInit}
-                className="bg-primary w-full py-4 rounded-2xl shadow-lg shadow-teal-900/20 active:opacity-90"
+                disabled={isLoading}
+                className="bg-primary w-full py-4 rounded-2xl shadow-lg shadow-teal-900/20 active:opacity-90 flex-row justify-center items-center"
             >
-                <Text className="text-white text-center font-bold font-inter text-lg">Sign Up</Text>
+                {isLoading ? <ActivityIndicator color="white" /> : <Text className="text-white text-center font-bold font-inter text-lg">Sign Up</Text>}
             </TouchableOpacity>
 
             {/* Navigation Link Back to Login */}
