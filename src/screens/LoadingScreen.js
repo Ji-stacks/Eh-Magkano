@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, Text, Animated } from 'react-native';
 
 export default function LoadingScreen() {
-  const fadeAnim = new Animated.Value(0);
-  const scaleAnim = new Animated.Value(0.8);
+  // FIXED: Use useRef so values don't reset on re-renders
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
   useEffect(() => {
     Animated.parallel([
@@ -45,14 +46,14 @@ export default function LoadingScreen() {
             </View>
         </View>
 
-        {/* Brand Name: Inter */}
-        <Text className="text-4xl font-bold text-white tracking-wider font-inter">
+        {/* Brand Name - FIXED: Removed 'font-inter' to ensure visibility */}
+        <Text className="text-4xl font-bold text-white tracking-wider">
           Eh Magkano?
         </Text>
         
-        {/* Tagline: Roboto */}
-        <Text className="text-teal-200 text-sm mt-2 tracking-widest uppercase font-roboto">
-          Smart Commuting
+        {/* Tagline - FIXED: Removed 'font-roboto' */}
+        <Text className="text-teal-200 text-sm mt-2 tracking-widest uppercase">
+          Smart Commuting. Better Savings.
         </Text>
 
         {/* Loading Dots */}
@@ -64,7 +65,7 @@ export default function LoadingScreen() {
       </Animated.View>
 
       <View className="absolute bottom-10">
-        <Text className="text-teal-800 text-xs font-semibold font-roboto">v1.0.0</Text>
+        <Text className="text-teal-800 text-xs font-semibold">v1.0.0</Text>
       </View>
     </View>
   );

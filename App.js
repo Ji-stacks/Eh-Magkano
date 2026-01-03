@@ -13,6 +13,7 @@ import HomeScreen from './src/screens/HomeScreen';
 import LoadingScreen from './src/screens/LoadingScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import SignUpScreen from './src/screens/SignUpScreen';
+import WelcomeScreen from './src/screens/WelcomeScreen'; // <--- Imported
 
 SplashScreen.preventAutoHideAsync();
 
@@ -22,11 +23,20 @@ export default function App() {
   const [initializing, setInitializing] = useState(true);
   const [authMode, setAuthMode] = useState('login');
   
+  // NEW: State to track if the welcome animation has finished
+  const [welcomeShown, setWelcomeShown] = useState(false);
+  
   // NEW: Locks the screen on Signup until verification is done
   const [isRegistering, setIsRegistering] = useState(false);
 
-  function onAuthStateChangedHandler(user) {
-    setUser(user);
+  function onAuthStateChangedHandler(currentUser) {
+    setUser(currentUser);
+    
+    // If user logs out, reset the welcome screen so it shows next time they log in
+    if (!currentUser) {
+      setWelcomeShown(false);
+    }
+
     if (initializing) setInitializing(false);
   }
 
@@ -73,8 +83,19 @@ export default function App() {
     );
   }
 
-  // 2. Normal Flow: If user exists (and not registering), show Home
+  // 2. Authenticated Flow
   if (user) {
+    // NEW: Check if we have shown the welcome screen yet
+    if (!welcomeShown) {
+      return (
+        <WelcomeScreen 
+          user={user} 
+          onFinish={() => setWelcomeShown(true)} 
+        />
+      );
+    }
+
+    // Normal Home Screen
     return (
       <View className="flex-1">
         <HomeScreen />
@@ -83,7 +104,7 @@ export default function App() {
     );
   }
 
-  // 3. Auth Flow
+  // 3. Auth Flow (Login/Signup)
   if (authMode === 'signup') {
     return (
       <SignUpScreen 
