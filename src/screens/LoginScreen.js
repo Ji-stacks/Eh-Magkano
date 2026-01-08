@@ -44,8 +44,7 @@ export default function LoginScreen({ onLogin, onNavigateSignUp }) {
     setIsLoading(true);
 
     try {
-        await signInWithEmailAndPassword(auth, email, password);
-        // Success listener in App.js handles navigation
+        await signInWithEmailAndPassword(auth, email.trim(), password);        // Success listener in App.js handles navigation
     } catch (error) {
         let msg = error.message;
         let fieldErrors = {};
