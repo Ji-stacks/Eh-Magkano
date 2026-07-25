@@ -14,6 +14,7 @@ import LoadingScreen from './src/screens/LoadingScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import SignUpScreen from './src/screens/SignUpScreen';
 import WelcomeScreen from './src/screens/WelcomeScreen'; // <--- Imported
+import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -104,7 +105,7 @@ export default function App() {
     );
   }
 
-  // 3. Auth Flow (Login/Signup)
+  // 3. Auth Flow (Login/Signup/Forgot Password)
   if (authMode === 'signup') {
     return (
       <SignUpScreen 
@@ -115,9 +116,18 @@ export default function App() {
     );
   }
 
+  if (authMode === 'forgot_password') {
+    return (
+      <ForgotPasswordScreen 
+        onNavigateLogin={() => setAuthMode('login')}
+      />
+    );
+  }
+
   return (
     <LoginScreen 
       onNavigateSignUp={() => setAuthMode('signup')} 
+      onNavigateForgotPassword={() => setAuthMode('forgot_password')}
     />
   );
 }
