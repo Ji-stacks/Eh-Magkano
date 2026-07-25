@@ -1,20 +1,43 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+
+// Firebase Imports
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '../config/firebase';
 
 export default function ForgotPasswordScreen({ onNavigateLogin }) {
   const [email, setEmail] = useState('');
   const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleResetPassword = () => {
+  const handleResetPassword = async () => {
     if (!email) {
       setError('Email is required');
       return;
     }
     setError(null);
-    // Firebase auth backend logic is not implemented yet as per request
-    console.log('Reset link requested for:', email);
+    setIsLoading(true);
+
+    try {
+      await sendPasswordResetEmail(auth, email.trim());
+      Alert.alert(
+        "Reset Email Sent",
+        `A password reset link has been sent to ${email.trim()}. Please check your inbox and follow the instructions.`
+      );
+    } catch (err) {
+      let msg = err.message;
+      if (err.code === 'auth/invalid-email') {
+        setError('Invalid email address format.');
+      } else if (err.code === 'auth/user-not-found') {
+        setError('No account found with this email.');
+      } else {
+        setError(msg || 'An error occurred. Please try again.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -73,9 +96,16 @@ export default function ForgotPasswordScreen({ onNavigateLogin }) {
             {/* Send Reset Link Button */}
             <TouchableOpacity 
                 onPress={handleResetPassword}
-                className="w-full py-4 rounded-2xl shadow-lg bg-primary shadow-teal-900/20 active:opacity-90 flex-row justify-center items-center mb-6"
+                disabled={isLoading}
+                className={`w-full py-4 rounded-2xl shadow-lg bg-primary shadow-teal-900/20 active:opacity-90 flex-row justify-center items-center mb-6 ${
+                    isLoading ? 'opacity-70' : ''
+                }`}
             >
-                <Text className="text-white text-center font-bold font-inter text-lg">Send Reset Link</Text>
+                {isLoading ? (
+                    <ActivityIndicator color="white" />
+                ) : (
+                    <Text className="text-white text-center font-bold font-inter text-lg">Send Reset Link</Text>
+                )}
             </TouchableOpacity>
 
             {/* Back to Login */}
