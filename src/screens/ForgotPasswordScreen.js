@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Modal } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -11,6 +11,7 @@ export default function ForgotPasswordScreen({ onNavigateLogin }) {
   const [email, setEmail] = useState('');
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
 
   const handleResetPassword = async () => {
     if (!email) {
@@ -22,10 +23,7 @@ export default function ForgotPasswordScreen({ onNavigateLogin }) {
 
     try {
       await sendPasswordResetEmail(auth, email.trim());
-      Alert.alert(
-        "Reset Email Sent",
-        `A password reset link has been sent to ${email.trim()}. Please check your inbox and follow the instructions.`
-      );
+      setSuccessModalVisible(true);
     } catch (err) {
       let msg = err.message;
       if (err.code === 'auth/invalid-email') {
@@ -116,6 +114,51 @@ export default function ForgotPasswordScreen({ onNavigateLogin }) {
             </View>
         </View>
       </ScrollView>
+
+      {/* Custom Success Modal */}
+      <Modal
+        visible={successModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setSuccessModalVisible(false)}
+      >
+        <View className="flex-1 justify-center items-center bg-black/60 px-6">
+            <View 
+                className="w-[85%] max-w-xs bg-surface rounded-2xl p-6 items-center"
+                style={{
+                    shadowColor: "#000",
+                    shadowOffset: {
+                        width: 0,
+                        height: 4,
+                    },
+                    shadowOpacity: 0.30,
+                    shadowRadius: 4.65,
+                    elevation: 10,
+                }}
+            >
+                <View className="w-12 h-12 bg-teal-50 rounded-full items-center justify-center mb-3">
+                    <Ionicons name="checkmark-circle-outline" size={28} color="#0F766E" />
+                </View>
+
+                <Text className="text-lg font-bold text-gray-800 font-inter mb-1 text-center">
+                    Email Sent!
+                </Text>
+                
+                <Text className="text-sm text-gray-500 font-inter text-center mb-6 leading-5">
+                    Check your inbox for the reset link.
+                </Text>
+
+                <TouchableOpacity 
+                    onPress={() => setSuccessModalVisible(false)}
+                    className="w-full py-3 bg-primary rounded-xl items-center shadow-md active:opacity-90"
+                >
+                    <Text className="text-sm font-bold text-white font-inter">
+                        OK
+                    </Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
