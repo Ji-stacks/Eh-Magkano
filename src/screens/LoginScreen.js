@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../config/firebase";
 
-export default function LoginScreen({ onLogin, onNavigateSignUp }) {
+export default function LoginScreen({ onLogin, onNavigateSignUp, onNavigateForgotPassword }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -145,7 +145,7 @@ export default function LoginScreen({ onLogin, onNavigateSignUp }) {
                 {errors.password && (
                     <Text className="text-red-500 text-[10px] ml-4 mt-1 font-medium">{errors.password}</Text>
                 )}
-                <TouchableOpacity className="items-end mt-2">
+                <TouchableOpacity onPress={onNavigateForgotPassword} className="items-end mt-2">
                     <Text className="text-primary font-bold font-inter text-xs">Forgot Password?</Text>
                 </TouchableOpacity>
             </View>
