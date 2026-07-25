@@ -142,13 +142,12 @@ export default function LoginScreen({ onLogin, onNavigateSignUp }) {
                     </TouchableOpacity>
                 </View>
                 
-                {errors.password ? (
+                {errors.password && (
                     <Text className="text-red-500 text-[10px] ml-4 mt-1 font-medium">{errors.password}</Text>
-                ) : (
-                    <TouchableOpacity className="items-end mt-2">
-                        <Text className="text-primary font-bold font-inter text-xs">Forgot Password?</Text>
-                    </TouchableOpacity>
                 )}
+                <TouchableOpacity className="items-end mt-2">
+                    <Text className="text-primary font-bold font-inter text-xs">Forgot Password?</Text>
+                </TouchableOpacity>
             </View>
 
             {/* Login Button */}
