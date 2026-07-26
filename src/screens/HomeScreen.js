@@ -624,12 +624,16 @@ export default function HomeScreen() {
       >
         <View className="flex-1">
             {/* Backdrop with Fade Animation */}
-            <TouchableWithoutFeedback onPress={closeMenu}>
+            <TouchableOpacity 
+                activeOpacity={1} 
+                onPress={closeMenu} 
+                className="absolute inset-0 w-full h-full"
+            >
                 <Animated.View 
                     style={{ opacity: fadeAnim }} 
-                    className="absolute inset-0 bg-black/40" 
+                    className="absolute inset-0 bg-black/40 w-full h-full" 
                 />
-            </TouchableWithoutFeedback>
+            </TouchableOpacity>
 
             {/* Sliding Drawer */}
             <Animated.View 
