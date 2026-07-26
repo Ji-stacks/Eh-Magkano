@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Modal, FlatList, TouchableWithoutFeedback, Switch, Animated, Dimensions, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Modal, FlatList, TouchableWithoutFeedback, Switch, Animated, Dimensions, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons'; 
-import { signOut, updateProfile } from 'firebase/auth';
+import { signOut, updateProfile, updatePassword } from 'firebase/auth';
 import { auth } from '../config/firebase';
 
 // Imports from our other files
@@ -39,6 +39,8 @@ export default function HomeScreen() {
   const [personalInfoModalVisible, setPersonalInfoModalVisible] = useState(false); // NEW: Personal Info State
   const [editableName, setEditableName] = useState(auth.currentUser?.displayName || '');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [birthday, setBirthday] = useState(''); // TODO: Fetch birthday from Firestore/Database on load
 
   // Animation Refs
   const screenWidth = Dimensions.get('window').width;
@@ -104,11 +106,26 @@ export default function HomeScreen() {
     setIsSavingProfile(true);
     try {
       await updateProfile(auth.currentUser, { displayName: editableName });
+      if (newPassword) {
+        await updatePassword(auth.currentUser, newPassword);
+      }
+      // TODO: Save birthday to Firestore
+      
+      setNewPassword('');
+      setPersonalInfoModalVisible(false);
     } catch (error) {
       console.error("Error updating profile: ", error);
+      if (error.code === 'auth/requires-recent-login') {
+        Alert.alert(
+          "Re-authentication Required",
+          "This action requires a recent login. Please log out and log back in to change your password."
+        );
+      } else {
+        Alert.alert("Error", error.message || "Failed to update profile.");
+      }
+    } finally {
+      setIsSavingProfile(false);
     }
-    setIsSavingProfile(false);
-    setPersonalInfoModalVisible(false);
   };
 
   // --- Profile Function ---
@@ -483,6 +500,37 @@ export default function HomeScreen() {
                                 placeholder="+63 900 000 0000"
                                 placeholderTextColor={isDarkMode ? "#6B7280" : "#9CA3AF"}
                                 keyboardType="phone-pad"
+                                style={{ flex: 1, marginLeft: 12, color: isDarkMode ? 'white' : 'black', fontFamily: 'Inter' }}
+                            />
+                        </View>
+                    </View>
+
+                    {/* Birthday */}
+                    <View>
+                        <Text className={`text-xs font-bold mb-2 uppercase tracking-wide ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Birthday</Text>
+                        <View className={`flex-row items-center p-4 rounded-xl border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'}`}>
+                            <Ionicons name="calendar-outline" size={20} color={isDarkMode ? "#9CA3AF" : "#6B7280"} />
+                            <TextInput 
+                                placeholder="YYYY-MM-DD"
+                                placeholderTextColor={isDarkMode ? "#6B7280" : "#9CA3AF"}
+                                value={birthday}
+                                onChangeText={setBirthday}
+                                style={{ flex: 1, marginLeft: 12, color: isDarkMode ? 'white' : 'black', fontFamily: 'Inter' }}
+                            />
+                        </View>
+                    </View>
+
+                    {/* Change Password */}
+                    <View>
+                        <Text className={`text-xs font-bold mb-2 uppercase tracking-wide ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Change Password</Text>
+                        <View className={`flex-row items-center p-4 rounded-xl border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'}`}>
+                            <Ionicons name="lock-closed-outline" size={20} color={isDarkMode ? "#9CA3AF" : "#6B7280"} />
+                            <TextInput 
+                                placeholder="Enter new password"
+                                placeholderTextColor={isDarkMode ? "#6B7280" : "#9CA3AF"}
+                                secureTextEntry={true}
+                                value={newPassword}
+                                onChangeText={setNewPassword}
                                 style={{ flex: 1, marginLeft: 12, color: isDarkMode ? 'white' : 'black', fontFamily: 'Inter' }}
                             />
                         </View>
