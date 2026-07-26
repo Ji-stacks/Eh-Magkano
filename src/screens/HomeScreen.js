@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Modal, FlatList, TouchableWithoutFeedback, Switch, Animated, Dimensions, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Modal, FlatList, TouchableWithoutFeedback, Switch, Animated, Dimensions, TextInput, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons'; 
-import { signOut } from 'firebase/auth';
+import { signOut, updateProfile } from 'firebase/auth';
 import { auth } from '../config/firebase';
 
 // Imports from our other files
@@ -37,6 +37,8 @@ export default function HomeScreen() {
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
   const [profileModalVisible, setProfileModalVisible] = useState(false); // Profile State
   const [personalInfoModalVisible, setPersonalInfoModalVisible] = useState(false); // NEW: Personal Info State
+  const [editableName, setEditableName] = useState(auth.currentUser?.displayName || '');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   // Animation Refs
   const screenWidth = Dimensions.get('window').width;
@@ -96,6 +98,17 @@ export default function HomeScreen() {
     } catch (error) {
       console.error("Error signing out: ", error);
     }
+  };
+
+  const handleSaveProfile = async () => {
+    setIsSavingProfile(true);
+    try {
+      await updateProfile(auth.currentUser, { displayName: editableName });
+    } catch (error) {
+      console.error("Error updating profile: ", error);
+    }
+    setIsSavingProfile(false);
+    setPersonalInfoModalVisible(false);
   };
 
   // --- Profile Function ---
@@ -439,7 +452,8 @@ export default function HomeScreen() {
                             <TextInput 
                                 placeholder="Enter your full name"
                                 placeholderTextColor={isDarkMode ? "#6B7280" : "#9CA3AF"}
-                                defaultValue={auth.currentUser?.displayName || ''}
+                                value={editableName}
+                                onChangeText={setEditableName}
                                 style={{ flex: 1, marginLeft: 12, color: isDarkMode ? 'white' : 'black', fontFamily: 'Inter' }}
                             />
                         </View>
@@ -477,8 +491,16 @@ export default function HomeScreen() {
                 </View>
 
                 {/* Save Button */}
-                <TouchableOpacity className="mt-10 bg-primary py-4 rounded-xl shadow-lg shadow-teal-200 mb-10">
-                    <Text className="text-white text-center font-bold text-lg font-inter">Save Changes</Text>
+                <TouchableOpacity 
+                    onPress={handleSaveProfile}
+                    disabled={isSavingProfile}
+                    className="mt-10 bg-primary py-4 rounded-xl shadow-lg shadow-teal-200 mb-10"
+                >
+                    {isSavingProfile ? (
+                        <ActivityIndicator color="white" />
+                    ) : (
+                        <Text className="text-white text-center font-bold text-lg font-inter">Save Changes</Text>
+                    )}
                 </TouchableOpacity>
 
             </ScrollView>
