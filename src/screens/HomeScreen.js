@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useContext } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Modal, FlatList, TouchableWithoutFeedback, Switch, Animated, Dimensions, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons'; 
@@ -11,6 +11,7 @@ import { calculateFare } from '../utils/calculateFare';
 import VehicleCard from '../components/VehicleCard';
 import FareResult from '../components/FareResult';
 import GuidesTab from '../components/GuidesTab'; 
+import { ThemeContext } from '../context/ThemeContext';
 
 export default function HomeScreen() {
   const [origin, setOrigin] = useState('');
@@ -33,7 +34,7 @@ export default function HomeScreen() {
 
   // --- NEW STATES FOR HAMBURGER MENU & LOGOUT ---
   const [menuVisible, setMenuVisible] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkMode, toggleTheme } = useContext(ThemeContext);
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
   const [profileModalVisible, setProfileModalVisible] = useState(false); // Profile State
   const [personalInfoModalVisible, setPersonalInfoModalVisible] = useState(false); // NEW: Personal Info State
@@ -80,9 +81,7 @@ export default function HomeScreen() {
   };
 
   // --- Theme Toggle Function ---
-  const toggleTheme = () => {
-    setIsDarkMode(prev => !prev);
-  };
+  // (Uses global toggleTheme from context)
 
   // --- Logout Functions ---
   const handleLogoutPress = () => {
