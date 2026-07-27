@@ -79,7 +79,7 @@ export default function LoginScreen({ onLogin, onNavigateSignUp, onNavigateForgo
         className="absolute top-12 right-6 p-2 rounded-full z-50"
       >
         <Ionicons 
-          name={isDarkMode ? "sunny" : "moon"} 
+          name={isDarkMode ? "moon" : "sunny"} 
           size={24} 
           color={isDarkMode ? "#FBBF24" : "#FFFFFF"} 
         />
