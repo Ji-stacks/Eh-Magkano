@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Switch } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -12,6 +12,7 @@ export default function LoginScreen({ onLogin, onNavigateSignUp, onNavigateForgo
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   
   // Inline Error State
   const [errors, setErrors] = useState({});
@@ -68,15 +69,33 @@ export default function LoginScreen({ onLogin, onNavigateSignUp, onNavigateForgo
   return (
     <KeyboardAvoidingView 
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1 bg-secondary"
+      className={`flex-1 ${isDarkMode ? 'bg-slate-900' : 'bg-secondary'}`}
     >
-      <StatusBar style="light" />
+      <StatusBar style={isDarkMode ? "light" : "dark"} />
+      
+      {/* Theme Toggle Container */}
+      <View className="absolute top-12 right-6 flex-row items-center z-50">
+        <Ionicons 
+          name={isDarkMode ? "moon" : "sunny"} 
+          size={20} 
+          color={isDarkMode ? "#E2E8F0" : "#FFFFFF"} 
+          style={{ marginRight: 8 }}
+        />
+        <Switch
+          trackColor={{ false: "#E5E7EB", true: "#0F766E" }}
+          thumbColor={isDarkMode ? "#ffffff" : "#f4f3f4"}
+          onValueChange={() => setIsDarkMode(prev => !prev)}
+          value={isDarkMode}
+          style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
+        />
+      </View>
+
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         
         {/* Top Section: Branding */}
         <View className="flex-1 items-center justify-center py-10">
             <View className="w-24 h-24 bg-white rounded-2xl p-2 justify-between shadow-2xl mb-6">
-                <View className="w-full h-10 bg-secondary rounded-lg opacity-80" />
+                <View className={`w-full h-10 rounded-lg opacity-80 ${isDarkMode ? 'bg-slate-700' : 'bg-secondary'}`} />
                 <View className="flex-row justify-between items-center px-1">
                     <View className="w-4 h-4 bg-yellow-400 rounded-full" />
                     <View className="h-2 w-8 bg-gray-200 rounded-full opacity-50" />
@@ -87,16 +106,16 @@ export default function LoginScreen({ onLogin, onNavigateSignUp, onNavigateForgo
             </View>
 
             <Text className="text-4xl font-bold text-white font-inter tracking-wider">Eh Magkano?</Text>
-            <Text className="text-teal-200 font-roboto mt-2">Smart Commuting. Better Savings.</Text>
+            <Text className={`font-roboto mt-2 ${isDarkMode ? 'text-slate-400' : 'text-teal-200'}`}>Smart Commuting. Better Savings.</Text>
         </View>
 
         {/* Bottom Section: Form */}
-        <View className="bg-background rounded-t-[40px] px-8 pt-10 pb-10 shadow-inner h-auto">
-            <Text className="text-2xl font-bold text-gray-800 font-inter mb-6">Welcome Back</Text>
+        <View className={`rounded-t-[40px] px-8 pt-10 pb-10 shadow-inner h-auto ${isDarkMode ? 'bg-slate-800' : 'bg-background'}`}>
+            <Text className={`text-2xl font-bold font-inter mb-6 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Welcome Back</Text>
 
             {/* General Error Message (for network issues/too many attempts) */}
             {errors.general && (
-                <View className="bg-red-50 border border-red-200 p-3 rounded-xl mb-4 flex-row items-center">
+                <View className={`p-3 rounded-xl mb-4 flex-row items-center border ${isDarkMode ? 'bg-red-950/20 border-red-900/50' : 'bg-red-50 border-red-200'}`}>
                     <Ionicons name="alert-circle" size={20} color="#EF4444" />
                     <Text className="text-red-500 text-xs font-bold ml-2 flex-1">{errors.general}</Text>
                 </View>
@@ -104,14 +123,17 @@ export default function LoginScreen({ onLogin, onNavigateSignUp, onNavigateForgo
 
             {/* Email Input */}
             <View className="mb-4">
-                <Text className="text-gray-500 font-roboto text-xs ml-4 mb-2 uppercase">Email Address</Text>
-                <View className={`bg-surface rounded-2xl flex-row items-center px-4 py-3 border shadow-sm ${
-                    errors.email ? 'border-red-500' : 'border-gray-100'
+                <Text className={`font-roboto text-xs ml-4 mb-2 uppercase ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Email Address</Text>
+                <View className={`rounded-2xl flex-row items-center px-4 py-3 border shadow-sm ${
+                    isDarkMode ? 'bg-slate-700' : 'bg-surface'
+                } ${
+                    errors.email ? 'border-red-500' : (isDarkMode ? 'border-slate-600' : 'border-gray-100')
                 }`}>
                     <Ionicons name="mail-outline" size={20} color={errors.email ? "#EF4444" : "#9CA3AF"} />
                     <TextInput 
-                        className="flex-1 ml-3 font-roboto text-gray-700"
+                        className={`flex-1 ml-3 font-roboto ${isDarkMode ? 'text-white' : 'text-gray-700'}`}
                         placeholder="you@example.com"
+                        placeholderTextColor={isDarkMode ? "#9CA3AF" : "#9CA3AF"}
                         value={email}
                         onChangeText={(text) => { setEmail(text); clearError('email'); }}
                         autoCapitalize="none"
@@ -125,14 +147,17 @@ export default function LoginScreen({ onLogin, onNavigateSignUp, onNavigateForgo
 
             {/* Password Input */}
             <View className="mb-6">
-                <Text className="text-gray-500 font-roboto text-xs ml-4 mb-2 uppercase">Password</Text>
-                <View className={`bg-surface rounded-2xl flex-row items-center px-4 py-3 border shadow-sm ${
-                    errors.password ? 'border-red-500' : 'border-gray-100'
+                <Text className={`font-roboto text-xs ml-4 mb-2 uppercase ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Password</Text>
+                <View className={`rounded-2xl flex-row items-center px-4 py-3 border shadow-sm ${
+                    isDarkMode ? 'bg-slate-700' : 'bg-surface'
+                } ${
+                    errors.password ? 'border-red-500' : (isDarkMode ? 'border-slate-600' : 'border-gray-100')
                 }`}>
                     <Ionicons name="lock-closed-outline" size={20} color={errors.password ? "#EF4444" : "#9CA3AF"} />
                     <TextInput 
-                        className="flex-1 ml-3 font-roboto text-gray-700"
+                        className={`flex-1 ml-3 font-roboto ${isDarkMode ? 'text-white' : 'text-gray-700'}`}
                         placeholder="••••••••"
+                        placeholderTextColor={isDarkMode ? "#9CA3AF" : "#9CA3AF"}
                         value={password}
                         onChangeText={(text) => { setPassword(text); clearError('password'); }}
                         secureTextEntry={!showPassword}
@@ -146,7 +171,7 @@ export default function LoginScreen({ onLogin, onNavigateSignUp, onNavigateForgo
                     <Text className="text-red-500 text-[10px] ml-4 mt-1 font-medium">{errors.password}</Text>
                 )}
                 <TouchableOpacity onPress={onNavigateForgotPassword} className="items-end mt-2">
-                    <Text className="text-primary font-bold font-inter text-xs">Forgot Password?</Text>
+                    <Text className={`font-bold font-inter text-xs ${isDarkMode ? 'text-teal-400' : 'text-primary'}`}>Forgot Password?</Text>
                 </TouchableOpacity>
             </View>
 
@@ -155,7 +180,9 @@ export default function LoginScreen({ onLogin, onNavigateSignUp, onNavigateForgo
                 onPress={handleLogin}
                 disabled={isLoading}
                 className={`w-full py-4 rounded-2xl shadow-lg flex-row justify-center items-center ${
-                    isLoading ? 'bg-secondary' : 'bg-primary shadow-teal-900/20 active:opacity-90'
+                    isLoading 
+                    ? (isDarkMode ? 'bg-slate-700' : 'bg-secondary') 
+                    : 'bg-primary shadow-teal-900/20 active:opacity-90'
                 }`}
             >
                 {isLoading ? (
@@ -167,9 +194,9 @@ export default function LoginScreen({ onLogin, onNavigateSignUp, onNavigateForgo
 
             {/* Sign Up Link */}
             <View className="flex-row justify-center mt-8">
-                <Text className="text-gray-500 font-roboto">Don't have an account? </Text>
+                <Text className={`font-roboto ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Don't have an account? </Text>
                 <TouchableOpacity onPress={onNavigateSignUp}>
-                    <Text className="text-primary font-bold font-inter">Sign Up</Text>
+                    <Text className={`font-bold font-inter ${isDarkMode ? 'text-teal-400' : 'text-primary'}`}>Sign Up</Text>
                 </TouchableOpacity>
             </View>
         </View>
