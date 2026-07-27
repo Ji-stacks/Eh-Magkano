@@ -73,22 +73,17 @@ export default function LoginScreen({ onLogin, onNavigateSignUp, onNavigateForgo
     >
       <StatusBar style={isDarkMode ? "light" : "dark"} />
       
-      {/* Theme Toggle Container */}
-      <View className="absolute top-12 right-6 flex-row items-center z-50">
+      {/* Theme Toggle Button */}
+      <TouchableOpacity 
+        onPress={() => setIsDarkMode(!isDarkMode)}
+        className="absolute top-12 right-6 p-2 rounded-full z-50"
+      >
         <Ionicons 
-          name={isDarkMode ? "moon" : "sunny"} 
-          size={20} 
-          color={isDarkMode ? "#E2E8F0" : "#FFFFFF"} 
-          style={{ marginRight: 8 }}
+          name={isDarkMode ? "sunny" : "moon"} 
+          size={24} 
+          color={isDarkMode ? "#FBBF24" : "#FFFFFF"} 
         />
-        <Switch
-          trackColor={{ false: "#E5E7EB", true: "#0F766E" }}
-          thumbColor={isDarkMode ? "#ffffff" : "#f4f3f4"}
-          onValueChange={() => setIsDarkMode(prev => !prev)}
-          value={isDarkMode}
-          style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
-        />
-      </View>
+      </TouchableOpacity>
 
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         
