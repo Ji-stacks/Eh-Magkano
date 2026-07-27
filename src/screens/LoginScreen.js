@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Switch } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,13 +6,15 @@ import { Ionicons } from '@expo/vector-icons';
 // Firebase Imports
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../config/firebase";
+import { ThemeContext } from '../context/ThemeContext';
 
 export default function LoginScreen({ onLogin, onNavigateSignUp, onNavigateForgotPassword }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  
+  const { isDarkMode, toggleTheme } = useContext(ThemeContext);
   
   // Inline Error State
   const [errors, setErrors] = useState({});
@@ -75,7 +77,7 @@ export default function LoginScreen({ onLogin, onNavigateSignUp, onNavigateForgo
       
       {/* Theme Toggle Button */}
       <TouchableOpacity 
-        onPress={() => setIsDarkMode(!isDarkMode)}
+        onPress={toggleTheme}
         className="absolute top-12 right-6 p-2 rounded-full z-50"
       >
         <Ionicons 

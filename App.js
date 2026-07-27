@@ -15,10 +15,11 @@ import LoginScreen from './src/screens/LoginScreen';
 import SignUpScreen from './src/screens/SignUpScreen';
 import WelcomeScreen from './src/screens/WelcomeScreen'; // <--- Imported
 import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
+import { ThemeProvider } from './src/context/ThemeContext';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function App() {
+function MainApp() {
   const [appIsReady, setAppIsReady] = useState(false);
   const [user, setUser] = useState(null);
   const [initializing, setInitializing] = useState(true);
@@ -129,5 +130,13 @@ export default function App() {
       onNavigateSignUp={() => setAuthMode('signup')} 
       onNavigateForgotPassword={() => setAuthMode('forgot_password')}
     />
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <MainApp />
+    </ThemeProvider>
   );
 }
